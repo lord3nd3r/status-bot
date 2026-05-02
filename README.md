@@ -85,10 +85,65 @@ Edit `config.json` to configure your bot:
 
 Hostmasks follow the IRC format: `nick!user@host`
 
-Examples:
-- `End3r!*@*` - Matches nickname "End3r" with any user@host
-- `*!*@*.example.com` - Matches any user from example.com domain
-- `admin!~admin@192.168.*.*` - Matches specific user from 192.168.x.x subnet
+**Security Levels (from least to most secure):**
+
+1. **Nickname only** (NOT RECOMMENDED):
+   - `End3r!*@*` - Anyone using nickname "End3r" (can be spoofed)
+   - Use only on networks with Services (NickServ) and SASL
+
+2. **Hostname-based** (RECOMMENDED for EFnet, etc.):
+   - `End3r!*@your.hostname.com` - Specific nickname + hostname
+   - `End3r!~ident@your.hostname.com` - Specific nickname + ident + hostname
+   - `*!*@your.hostname.com` - Any nickname from your hostname
+
+3. **IP-based**:
+   - `End3r!*@192.168.1.100` - Specific IP address
+   - `End3r!*@192.168.1.*` - IP range
+   - `*!*@10.0.*.*` - Entire subnet
+
+4. **Domain-based**:
+   - `*!*@*.example.com` - Any user from example.com domain
+   - `admin!~admin@*.trusted.net` - Specific user from trusted network
+
+**Best Practices:**
+- **With Services (NickServ)**: Use SASL + nickname patterns: `End3r!*@*`
+- **Without Services (EFnet)**: Use hostname patterns: `End3r!*@your.hostname.com`
+- **VPS/Shell**: Use full hostmask: `End3r!~ender@vps.example.com`
+- **Dynamic IP**: Use domain if you have one: `End3r!*@*.yourddns.net`
+
+**Finding Your Hostname:**
+```
+/whois YourNick
+```
+Look for the line showing: `YourNick!~ident@your.hostname.com`
+Use that exact hostname in your admin pattern.
+
+### Example Configurations
+
+**For networks with Services (Libera.Chat, OFTC):**
+```json
+{
+  "sasl": {
+    "enabled": true,
+    "username": "statusbot",
+    "password": "your_password"
+  },
+  "admins": ["End3r!*@*", "Admin!*@*"]
+}
+```
+
+**For networks without Services (EFnet):**
+```json
+{
+  "sasl": {
+    "enabled": false
+  },
+  "admins": [
+    "End3r!*@your.hostname.com",
+    "Admin!~admin@192.168.1.100"
+  ]
+}
+```
 
 ## Commands
 
@@ -215,10 +270,20 @@ The bot maintains a JSON database file (default: `status_<network>.json`) that s
    ```
 
 2. **Use specific hostmasks** - Avoid overly broad patterns like `*!*@*`
+   - **On networks WITH services** (Libera, OFTC): Use SASL + nick patterns
+   - **On networks WITHOUT services** (EFnet): Use hostname/IP patterns
 
 3. **SASL Authentication** - Always use SASL when available for account-based authentication
+   - Prevents nickname spoofing through account verification
+   - Required for vhost/cloak on most networks
 
 4. **SSL/TLS** - Always use SSL (port 6697) for encrypted connections
+
+5. **Hostname Authentication for EFnet**
+   - EFnet has no services, so nicknames can be stolen
+   - Always use hostname-based patterns: `End3r!*@your.hostname.com`
+   - Get your hostname with `/whois yournick` on IRC
+   - Use your shell/VPS hostname for consistent authentication
 
 ## Running as a Service
 
