@@ -37,8 +37,8 @@ Edit `config.json` to configure your bot:
 {
   "networks": [
     {
-      "name": "ExampleNet",
-      "server": "irc.example.net",
+      "name": "Rizon",
+      "server": "irc.rizon.net",
       "port": 6697,
       "ssl": true,
       "nickname": "StatusBot",
@@ -49,13 +49,12 @@ Edit `config.json` to configure your bot:
         "username": "statusbot",
         "password": "your_sasl_password_here"
       },
-      "channels": ["#example", "#test"],
+      "channels": ["#bots"],
       "admins": [
-        "admin!*@*.example.com",
         "End3r!*@*"
       ],
       "command_prefix": "!",
-      "status_db": "status_ExampleNet.json"
+      "status_db": "status_Rizon.json"
     }
   ],
   "log_level": "INFO"
@@ -240,7 +239,7 @@ When a user with a persistent status joins:
 
 ## Persistent Status Database
 
-The bot maintains a JSON database file (default: `status_<network>.json`) that stores persistent status assignments. This file is automatically created and updated when you use mode commands.
+The bot maintains a JSON database file (default: `status_<network>.json`) that stores persistent status assignments. **Each IRC network has its own separate database file**, ensuring that status assignments are completely independent between networks.
 
 **Example database structure:**
 ```json
@@ -257,10 +256,12 @@ The bot maintains a JSON database file (default: `status_<network>.json`) that s
 ```
 
 **Important notes:**
+- Each network gets its own database: `status_EFnet.json`, `status_Libera.json`, etc.
 - Nicknames are stored in lowercase for case-insensitive matching
 - The database is automatically saved when modes are added or removed
-- Back up this file if you want to preserve status assignments
+- Back up these files if you want to preserve status assignments
 - The bot automatically applies modes when users join channels
+- Status assignments are network-specific and don't transfer between networks
 
 ## Security Considerations
 
@@ -356,14 +357,52 @@ sudo systemctl status statusbot
 
 ## Multiple Networks
 
-To connect to multiple networks, add more network configurations to the `networks` array in config.json. The bot will connect to each network sequentially (one at a time in the current implementation).
+The bot supports connecting to multiple IRC networks. **Each network automatically gets its own independent status database**, so mode assignments on one network don't affect others.
 
-For true multi-network support, you can run multiple instances of the bot with different config files:
+### Configuration
+
+Add multiple network configurations to the `networks` array in config.json:
+
+```json
+{
+  "networks": [
+    {
+      "name": "EFnet",
+      "server": "irc.efnet.org",
+      "status_db": "status_EFnet.json",
+      ...
+    },
+    {
+      "name": "Libera",
+      "server": "irc.libera.chat",
+      "status_db": "status_Libera.json",
+      ...
+    }
+  ]
+}
+```
+
+**Database Separation:**
+- Each network has its own `status_db` file (defaults to `status_<network_name>.json`)
+- Status assignments are completely independent per network
+- Example: `!addq Bob` on EFnet only affects EFnet, not other networks
+
+See [config.multi-network.json](config.multi-network.json) for a complete example.
+
+### Running Multiple Networks
+
+**Current Implementation (Sequential):**
+The bot connects to networks one at a time. If you have multiple networks configured, it will connect to the first one and stay connected. When that connection ends, it moves to the next network.
+
+**For True Multi-Network (Parallel):**
+Run multiple bot instances with separate config files:
 
 ```bash
-python3 bot.py config1.json &
-python3 bot.py config2.json &
+python3 bot.py config_efnet.json &
+python3 bot.py config_libera.json &
 ```
+
+Or use a process manager like systemd with multiple service files (see systemd section above).
 
 ## License
 

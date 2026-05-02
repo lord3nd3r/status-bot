@@ -1,0 +1,75 @@
+{
+  "networks": [
+    {
+      "name": "EFnet",
+      "server": "irc.efnet.org",
+      "port": 6697,
+      "ssl": true,
+      "nickname": "StatusBot",
+      "username": "statusbot",
+      "realname": "Status Management Bot",
+      "sasl": {
+        "enabled": false
+      },
+      "channels": ["#mychannel"],
+      "admins": ["End3r!*@your.hostname.com"],
+      "command_prefix": "!",
+      "status_db": "status_EFnet.json"
+    },
+    {
+      "name": "Libera",
+      "server": "irc.libera.chat",
+      "port": 6697,
+      "ssl": true,
+      "nickname": "StatusBot",
+      "username": "statusbot",
+      "realname": "Status Management Bot",
+      "sasl": {
+        "enabled": true,
+        "username": "statusbot",
+        "password": "your_sasl_password_here"
+      },
+      "channels": ["#test", "#bots"],
+      "admins": ["End3r!*@*"],
+      "command_prefix": "!",
+      "status_db": "status_Libera.json"
+    },
+    {
+      "name": "OFTC",
+      "server": "irc.oftc.net",
+      "port": 6697,
+      "ssl": true,
+      "nickname": "StatusBot",
+      "username": "statusbot",
+      "realname": "Status Management Bot",
+      "sasl": {
+        "enabled": true,
+        "username": "statusbot",
+        "password": "your_sasl_password_here"
+      },
+      "channels": ["#example"],
+      "admins": ["End3r!*@*"],
+      "command_prefix": "!",
+      "status_db": "status_OFTC.json"
+    },
+    {
+      "name": "Rizon",
+      "server": "irc.rizon.net",
+      "port": 6697,
+      "ssl": true,
+      "nickname": "StatusBot",
+      "username": "statusbot",
+      "realname": "Status Management Bot",
+      "sasl": {
+        "enabled": true,
+        "username": "statusbot",
+        "password": "your_sasl_password_here"
+      },
+      "channels": ["#bots"],
+      "admins": ["End3r!*@*"],
+      "command_prefix": "!",
+      "status_db": "status_Rizon.json"
+    }
+  ],
+  "log_level": "INFO"
+}

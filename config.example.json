@@ -1,8 +1,8 @@
 {
   "networks": [
     {
-      "name": "ExampleNet",
-      "server": "irc.example.net",
+      "name": "Rizon",
+      "server": "irc.rizon.net",
       "port": 6697,
       "ssl": true,
       "nickname": "StatusBot",
@@ -20,7 +20,7 @@
       ],
       "_comment_admins": "Hostmask patterns: nick!user@host. Use specific hostnames for networks without services (EFnet). Examples: End3r!*@vps.example.com or *!*@trusted.host.net",
       "command_prefix": "!",
-      "status_db": "status_ExampleNet.json"
+      "status_db": "status_Rizon.json"
     }
   ],
   "log_level": "INFO"
