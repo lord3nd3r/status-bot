@@ -1,0 +1,7 @@
+# IRC Status Bot Requirements
+# This bot uses only Python standard library modules
+# Python 3.6+ required
+
+# Optional: For enhanced features in the future
+# python-daemon>=2.3.0  # For running as a daemon
+# pyyaml>=5.4  # If you want YAML config support instead of JSON

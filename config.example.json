@@ -1,0 +1,25 @@
+{
+  "networks": [
+    {
+      "name": "ExampleNet",
+      "server": "irc.example.net",
+      "port": 6697,
+      "ssl": true,
+      "nickname": "StatusBot",
+      "username": "statusbot",
+      "realname": "Status Management Bot",
+      "sasl": {
+        "enabled": true,
+        "username": "statusbot",
+        "password": "your_sasl_password_here"
+      },
+      "channels": ["#example", "#test"],
+      "admins": [
+        "admin!*@*.example.com",
+        "End3r!*@*"
+      ],
+      "command_prefix": "!"
+    }
+  ],
+  "log_level": "INFO"
+}
