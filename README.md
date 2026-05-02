@@ -8,6 +8,7 @@ A powerful IRC bot for managing user modes and channel operations with SASL and 
 - ✅ **SASL Authentication** - PLAIN SASL authentication support
 - ✅ **Multiple Networks** - Connect to multiple IRC networks (sequential)
 - ✅ **User Mode Management** - Add/remove modes: +q (owner), +a (admin), +o (op), +h (halfop), +v (voice)
+- ✅ **Persistent Status** - Automatically re-apply modes when users reconnect
 - ✅ **Channel Management** - Join and part channels dynamically
 - ✅ **Admin Control** - Restrict commands to authorized users via hostmask matching
 - ✅ **PM and Channel Commands** - Works in both private messages and channels
@@ -53,7 +54,8 @@ Edit `config.json` to configure your bot:
         "admin!*@*.example.com",
         "End3r!*@*"
       ],
-      "command_prefix": "!"
+      "command_prefix": "!",
+      "status_db": "status_ExampleNet.json"
     }
   ],
   "log_level": "INFO"
@@ -76,6 +78,7 @@ Edit `config.json` to configure your bot:
 - **channels**: List of channels to auto-join
 - **admins**: List of admin hostmask patterns (supports * and ? wildcards)
 - **command_prefix**: Command prefix (default: !)
+- **status_db**: Filename for persistent status database (optional, default: status_<network>.json)
 - **log_level**: Logging level (DEBUG, INFO, WARNING, ERROR)
 
 ### Admin Hostmask Patterns
@@ -93,7 +96,7 @@ All commands require admin privileges (matching hostmask in config).
 
 ### Mode Commands
 
-Add or remove channel modes for users:
+Add or remove channel modes for users. **These commands create persistent status assignments** - users will automatically receive their assigned mode when they join the channel.
 
 | Command | Description | Usage | Example |
 |---------|-------------|-------|---------|
@@ -117,6 +120,18 @@ Add or remove channel modes for users:
 | `join` | Join a channel | `!join <channel>` | `!join #newchannel` |
 | `part` | Leave a channel | `!part <channel> [reason]` | `!part #channel Goodbye!` |
 
+### Status Management Commands
+
+Manage persistent status assignments:
+
+| Command | Description | Usage | Example |
+|---------|-------------|-------|---------|
+| `liststatus` | Show all persistent statuses | `!liststatus` | `!liststatus` |
+| `delstatus` | Remove persistent status | `!delstatus <nick> [channel]` | `!delstatus End3r #example` |
+| `clearstatus` | Clear all persistent statuses | `!clearstatus` | `!clearstatus` |
+
+**Note**: `delstatus` removes the persistent assignment but doesn't change the user's current mode. Use `delo`, `delv`, etc. to remove both the persistent status and current mode.
+
 ### Utility Commands
 
 | Command | Description | Usage | Example |
@@ -131,30 +146,72 @@ Add or remove channel modes for users:
 
 ```
 <End3r> !addq Bob
-<StatusBot> Added +q to Bob in #example
+<StatusBot> Added +q to Bob in #example (persistent)
 
 <End3r> !addo Alice
-<StatusBot> Added +o to Alice in #example
+<StatusBot> Added +o to Alice in #example (persistent)
 
 <End3r> !join #newchannel
 <StatusBot> Joining #newchannel
+
+<End3r> !liststatus
+<StatusBot> Persistent statuses:
+<StatusBot>   #example: bob -> +q
+<StatusBot>   #example: alice -> +o
+```
+
+### Auto-Apply on Join
+
+When a user with a persistent status joins:
+
+```
+--> Bob has joined #example
+-!- mode/#example [+q Bob] by StatusBot
 ```
 
 ### In Private Message
 
 ```
 /msg StatusBot !addq End3r #example
-<StatusBot> Added +q to End3r in #example
+<StatusBot> Added +q to End3r in #example (persistent)
 
 /msg StatusBot !join #test
 <StatusBot> Joining #test
+
+/msg StatusBot !liststatus
+<StatusBot> Persistent statuses:
+<StatusBot>   #example: end3r -> +q
 ```
+
+## Persistent Status Database
+
+The bot maintains a JSON database file (default: `status_<network>.json`) that stores persistent status assignments. This file is automatically created and updated when you use mode commands.
+
+**Example database structure:**
+```json
+{
+  "#example": {
+    "bob": "q",
+    "alice": "o",
+    "charlie": "v"
+  },
+  "#test": {
+    "dave": "o"
+  }
+}
+```
+
+**Important notes:**
+- Nicknames are stored in lowercase for case-insensitive matching
+- The database is automatically saved when modes are added or removed
+- Back up this file if you want to preserve status assignments
+- The bot automatically applies modes when users join channels
 
 ## Security Considerations
 
-1. **Protect your config.json** - It contains SASL passwords
+1. **Protect your config.json and status database** - Contains SASL passwords and status assignments
    ```bash
-   chmod 600 config.json
+   chmod 600 config.json status_*.json
    ```
 
 2. **Use specific hostmasks** - Avoid overly broad patterns like `*!*@*`

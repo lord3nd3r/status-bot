@@ -29,14 +29,73 @@ class IRCBot:
         self.channels = config.get('channels', [])
         self.admins = config.get('admins', [])
         self.command_prefix = config.get('command_prefix', '!')
+        self.status_db_file = config.get('status_db', f"status_{config['name']}.json")
         
         self.socket = None
         self.connected = False
         self.identified = False
         self.buffer = ""
         
+        # Persistent status database: {"#channel": {"nick": "mode"}}
+        self.status_db = self.load_status_db()
+        
         # Setup logging
         self.logger = logging.getLogger(f"IRCBot-{config['name']}")
+    
+    def load_status_db(self) -> Dict:
+        """Load persistent status database from file"""
+        try:
+            with open(self.status_db_file, 'r') as f:
+                db = json.load(f)
+                self.logger.info(f"Loaded {len(db)} channels from status database")
+                return db
+        except FileNotFoundError:
+            self.logger.info("No existing status database, starting fresh")
+            return {}
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Error parsing status database: {e}")
+            return {}
+    
+    def save_status_db(self):
+        """Save persistent status database to file"""
+        try:
+            with open(self.status_db_file, 'w') as f:
+                json.dump(self.status_db, f, indent=2)
+            self.logger.debug("Saved status database")
+        except Exception as e:
+            self.logger.error(f"Error saving status database: {e}")
+    
+    def add_status(self, channel: str, nick: str, mode: str):
+        """Add a persistent status for a user"""
+        if channel not in self.status_db:
+            self.status_db[channel] = {}
+        self.status_db[channel][nick.lower()] = mode
+        self.save_status_db()
+        self.logger.info(f"Added persistent status: {nick} -> {mode} in {channel}")
+    
+    def remove_status(self, channel: str, nick: str) -> bool:
+        """Remove a persistent status for a user"""
+        if channel in self.status_db and nick.lower() in self.status_db[channel]:
+            del self.status_db[channel][nick.lower()]
+            if not self.status_db[channel]:  # Remove empty channel
+                del self.status_db[channel]
+            self.save_status_db()
+            self.logger.info(f"Removed persistent status: {nick} in {channel}")
+            return True
+        return False
+    
+    def get_status(self, channel: str, nick: str) -> Optional[str]:
+        """Get the persistent status for a user"""
+        if channel in self.status_db:
+            return self.status_db[channel].get(nick.lower())
+        return None
+    
+    def apply_status(self, channel: str, nick: str):
+        """Apply persistent status to a user if they have one"""
+        mode = self.get_status(channel, nick)
+        if mode:
+            self.set_mode(channel, f'+{mode}', nick)
+            self.logger.info(f"Auto-applied +{mode} to {nick} in {channel}")
     
     def connect(self):
         """Connect to IRC server with SSL support"""
@@ -169,70 +228,80 @@ class IRCBot:
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '+q', args[0])
-                self.send_message(reply_to, f"Added +q to {args[0]} in {channel}")
+                self.add_status(channel, args[0], 'q')
+                self.send_message(reply_to, f"Added +q to {args[0]} in {channel} (persistent)")
         
         elif command == 'delq' and args:
             # Remove +q
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '-q', args[0])
-                self.send_message(reply_to, f"Removed +q from {args[0]} in {channel}")
+                self.remove_status(channel, args[0])
+                self.send_message(reply_to, f"Removed +q from {args[0]} in {channel} (persistent)")
         
         elif command == 'adda' and args:
             # Add +a (admin/protected)
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '+a', args[0])
-                self.send_message(reply_to, f"Added +a to {args[0]} in {channel}")
+                self.add_status(channel, args[0], 'a')
+                self.send_message(reply_to, f"Added +a to {args[0]} in {channel} (persistent)")
         
         elif command == 'dela' and args:
             # Remove +a
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '-a', args[0])
-                self.send_message(reply_to, f"Removed +a from {args[0]} in {channel}")
+                self.remove_status(channel, args[0])
+                self.send_message(reply_to, f"Removed +a from {args[0]} in {channel} (persistent)")
         
         elif command == 'addo' and args:
             # Add +o (operator)
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '+o', args[0])
-                self.send_message(reply_to, f"Added +o to {args[0]} in {channel}")
+                self.add_status(channel, args[0], 'o')
+                self.send_message(reply_to, f"Added +o to {args[0]} in {channel} (persistent)")
         
         elif command == 'delo' and args:
             # Remove +o
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '-o', args[0])
-                self.send_message(reply_to, f"Removed +o from {args[0]} in {channel}")
+                self.remove_status(channel, args[0])
+                self.send_message(reply_to, f"Removed +o from {args[0]} in {channel} (persistent)")
         
         elif command == 'addh' and args:
             # Add +h (halfop)
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '+h', args[0])
-                self.send_message(reply_to, f"Added +h to {args[0]} in {channel}")
+                self.add_status(channel, args[0], 'h')
+                self.send_message(reply_to, f"Added +h to {args[0]} in {channel} (persistent)")
         
         elif command == 'delh' and args:
             # Remove +h
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '-h', args[0])
-                self.send_message(reply_to, f"Removed +h from {args[0]} in {channel}")
+                self.remove_status(channel, args[0])
+                self.send_message(reply_to, f"Removed +h from {args[0]} in {channel} (persistent)")
         
         elif command == 'addv' and args:
             # Add +v (voice)
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '+v', args[0])
-                self.send_message(reply_to, f"Added +v to {args[0]} in {channel}")
+                self.add_status(channel, args[0], 'v')
+                self.send_message(reply_to, f"Added +v to {args[0]} in {channel} (persistent)")
         
         elif command == 'delv' and args:
             # Remove +v
             channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
             if channel:
                 self.set_mode(channel, '-v', args[0])
-                self.send_message(reply_to, f"Removed +v from {args[0]} in {channel}")
+                self.remove_status(channel, args[0])
+                self.send_message(reply_to, f"Removed +v from {args[0]} in {channel} (persistent)")
         
         elif command == 'join' and args:
             # Join a channel
@@ -259,13 +328,44 @@ class IRCBot:
             self.send_raw(raw_cmd)
             self.send_message(reply_to, f"Sent: {raw_cmd}")
         
+        elif command == 'liststatus':
+            # List all persistent statuses
+            if not self.status_db:
+                self.send_message(reply_to, "No persistent statuses configured.")
+            else:
+                self.send_message(reply_to, "Persistent statuses:")
+                for channel, users in self.status_db.items():
+                    for nick, mode in users.items():
+                        self.send_message(reply_to, f"  {channel}: {nick} -> +{mode}")
+        
+        elif command == 'delstatus' and args:
+            # Remove a persistent status without changing current mode
+            nick = args[0]
+            channel = target if target.startswith('#') else (args[1] if len(args) > 1 else None)
+            if channel:
+                if self.remove_status(channel, nick):
+                    self.send_message(reply_to, f"Removed persistent status for {nick} in {channel}")
+                else:
+                    self.send_message(reply_to, f"No persistent status found for {nick} in {channel}")
+            else:
+                self.send_message(reply_to, "Please specify a channel")
+        
+        elif command == 'clearstatus':
+            # Clear all persistent statuses
+            count = sum(len(users) for users in self.status_db.values())
+            self.status_db = {}
+            self.save_status_db()
+            self.send_message(reply_to, f"Cleared {count} persistent status(es)")
+        
         elif command == 'help':
             # Show help
             help_text = [
                 "Available commands:",
                 "Mode commands: addq/delq, adda/dela, addo/delo, addh/delh, addv/delv <nick> [channel]",
                 "Channel: join <channel>, part <channel> [reason]",
-                "Other: say <channel> <message>, raw <command>, help"
+                "Status: liststatus, delstatus <nick> [channel], clearstatus",
+                "Other: say <channel> <message>, raw <command>, help",
+                "Note: Mode commands are persistent - users will be auto-opped on join"
             ]
             for line in help_text:
                 self.send_message(reply_to, line)
@@ -312,6 +412,19 @@ class IRCBot:
                 self.logger.info("Registration complete, joining channels")
                 for channel in self.channels:
                     self.join_channel(channel)
+        
+        # Handle JOIN
+        if len(parts) >= 3 and parts[1] == 'JOIN':
+            prefix = parts[0][1:] if parts[0].startswith(':') else parts[0]
+            channel = parts[2][1:] if parts[2].startswith(':') else parts[2]  # Remove leading :
+            nick = self.parse_hostmask(prefix)[0]
+            
+            # Don't auto-apply to ourselves
+            if nick.lower() != self.nickname.lower():
+                self.logger.debug(f"{nick} joined {channel}")
+                # Small delay to let the user fully join before applying modes
+                time.sleep(0.5)
+                self.apply_status(channel, nick)
         
         # Handle PRIVMSG
         if len(parts) >= 4 and parts[1] == 'PRIVMSG':

@@ -18,7 +18,8 @@
         "admin!*@*.example.com",
         "End3r!*@*"
       ],
-      "command_prefix": "!"
+      "command_prefix": "!",
+      "status_db": "status_ExampleNet.json"
     }
   ],
   "log_level": "INFO"
