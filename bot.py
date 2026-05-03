@@ -36,11 +36,11 @@ class IRCBot:
         self.identified = False
         self.buffer = ""
         
-        # Persistent status database: {"#channel": {"nick": "mode"}}
-        self.status_db = self.load_status_db()
-        
         # Setup logging
         self.logger = logging.getLogger(f"IRCBot-{config['name']}")
+        
+        # Persistent status database: {"#channel": {"nick": "mode"}}
+        self.status_db = self.load_status_db()
     
     def load_status_db(self) -> Dict:
         """Load persistent status database from file"""
@@ -101,7 +101,7 @@ class IRCBot:
         """Connect to IRC server with SSL support"""
         self.logger.info(f"Connecting to {self.server}:{self.port} (SSL: {self.use_ssl})")
         
-        raw_socket = socket.socket(socket.AF_INET, socket.AF_INET6)
+        raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
         if self.use_ssl:
             context = ssl.create_default_context()
