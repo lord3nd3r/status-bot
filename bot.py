@@ -369,9 +369,6 @@ class IRCBot:
             ]
             for line in help_text:
                 self.send_message(reply_to, line)
-        
-        else:
-            self.send_message(reply_to, f"Unknown command: {command}. Use {self.command_prefix}help for help.")
     
     def handle_line(self, line: str):
         """Handle a single IRC line"""
