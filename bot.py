@@ -357,14 +357,14 @@ class IRCBot:
             self.save_status_db()
             self.send_message(reply_to, f"Cleared {count} persistent status(es)")
         
-        elif command == 'help':
+        elif command == 'qhelp':
             # Show help
             help_text = [
                 "Available commands:",
                 "Mode commands: addq/delq, adda/dela, addo/delo, addh/delh, addv/delv <nick> [channel]",
                 "Channel: join <channel>, part <channel> [reason]",
                 "Status: liststatus, delstatus <nick> [channel], clearstatus",
-                "Other: say <channel> <message>, raw <command>, help",
+                "Other: say <channel> <message>, raw <command>, qhelp",
                 "Note: Mode commands are persistent - users will be auto-opped on join"
             ]
             for line in help_text:
